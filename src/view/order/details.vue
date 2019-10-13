@@ -1,22 +1,24 @@
 <style lang="less" scoped>
 .order-details-wrapper {
-  width: 100%;
   color: #000;
+  width: 92%;
+  margin: 0 auto;
   overflow: auto;
   .content {
     margin: 20px auto;
+    transform-origin: 50% 0;
     ul {
       display: inline-flex;
       width: 100%;
       font-size: 14px;
       &.ul-color {
-        background: #6582ff;
+        background-color: rgba(101, 130, 255, .8);
         li {
           color: #fff !important;
         }
       }
       &.ul-list-color {
-        background: #ff9008;
+        background-color: rgba(101, 130, 255, .5);
         li {
           color: #fff !important;
         }
@@ -35,6 +37,7 @@
           color: #666;
           width: 80%;
           text-align: center;
+          background: none;
         }
         &.font-weight {
           color: #333;
@@ -142,6 +145,16 @@
         }
         &.no-top {
           border-top: none;
+          &.list-hover {
+            &:hover {
+              i {
+                display: inline-block;
+              }
+            }
+            i {
+              display: none;
+            }
+          }
         }
         &.no-left {
           border-left: none;
@@ -169,6 +182,17 @@
 </style>
 
 <style lang="less">
+  .content {
+    .ivu-input {
+      height: 30px;
+      line-height: 1;
+      border: none;
+      border-radius: 0;
+    }
+    .ivu-input-wrapper {
+      vertical-align: none;
+    }
+  }
   .modal-add {
     display: flex;
     align-items: center;
@@ -178,53 +202,72 @@
       top: 0;
     }
   }
+  .col-fontSize {
+    font-size: 20px;
+    i {
+      cursor: pointer;
+    }
+    span {
+      font-size: 14px;
+      margin: 0 10px;
+    }
+  }
 </style>
 
 <template>
   <div class="order-details-wrapper">
-    <Row class-name="row-margin">
+    <Row class-name="row-margin" type="flex" justify="space-between">
       <Col span="6">
         <Button type="primary" @click="addStatus = true">添加分类</Button>
       </Col>
+      <Col class-name="col-fontSize">
+        <Icon type="ios-remove-circle" @click="scaleValue = scaleValue < .8 ? .7 : scaleValue - .1" />
+        <span>表格缩放</span>
+        <Icon type="ios-add-circle" @click="scaleValue = scaleValue >= 1 ? 1 : scaleValue + .1" />
+      </Col>
     </Row>
-    <div class="content">
+    <div class="content" :style="{'transform': `scale(${scaleValue}, ${scaleValue})`}">
       <ul>
         <li>
-          <input type="text" placeholder="千百度订单明细">
+          <input v-model="formData.orderName" type="text" placeholder="请输入公司或项目名称">
         </li>
       </ul>
       <ul>
         <li class="no-top">订货日期</li>
         <li class="no-top no-left">
-          <input type="text" placeholder="2019-09-10">
+          <DatePicker v-model="formData.orderDate" type="date" placeholder="请选择日期"></DatePicker>
         </li>
         <li class="no-top no-left">订单号</li>
         <li class="no-top no-left">
-          <input type="text" placeholder="12431122311">
+          <input type="text" disabled placeholder="---">
         </li>
         <li class="no-top no-left">交货日期</li>
         <li class="no-top no-left">
-          <input type="text" placeholder="2019-09-10">
+          <DatePicker v-model="formData.deliveryDate" type="date" placeholder="请选择日期"></DatePicker>
         </li>
       </ul>
       <ul>
         <li class="no-top">订货人</li>
-        <li class="no-top no-bottom flex-3">
-          <input type="text" placeholder="新疆乌鲁木齐市米东区杨大伟">
+        <li class="no-top  no-left">
+          <input v-model="formData.orderUser" type="text" placeholder="请输入订货人姓名">
+        </li>
+        <li class="no-top no-left">订货人手机号</li>
+        <li class="no-top no-left">
+          <input v-model="formData.orderPhone" type="text" placeholder="请输入订货人手机号">
         </li>
         <li class="no-top no-left">结算方式</li>
         <li class="no-top no-left">
-          <input type="text" placeholder="微信支付宝">
+          <input v-model="formData.clearingForm" type="text" placeholder="请输入结算方式">
         </li>
       </ul>
       <ul>
-        <li class="no-top">终端客户</li>
+        <li class="no-top">产品名称</li>
         <li class="no-top no-bottom flex-3">
-          <input type="text" placeholder="阳台柜+里卧衣柜+右卧书桌">
+          <input v-model="formData.terminalUser" type="text" placeholder="请输入所有产品名称" />
         </li>
         <li class="no-top no-left">送货方式</li>
         <li class="no-top no-left">
-          <input type="text" placeholder="鸿泰-乌鲁木齐">
+          <input v-model="formData.shippingMethod" type="text" placeholder="请输入送货方式">
         </li>
       </ul>
       <!-- demo -->
@@ -240,10 +283,10 @@
             </ul>
             <ul>
               <li
-                v-for="(list, eq) in item.parameter"
+                v-for="(list, eq) in (item.parameter.length - 3)"
                 :key="eq"
                 class="no-top no-left"
-              >{{ list.label }}</li>
+              >{{ item.parameter[eq].name }}</li>
             </ul>
           </li>
           <li class="no-top no-left line-height">数量</li>
@@ -251,30 +294,39 @@
           <li class="no-top no-left line-height">金额</li>
         </ul>
         <ul v-for="(list, eq) in item.dataList" :key="eq">
-          <li class="no-top">{{ eq + 1 }}</li>
+          <li class="no-top list-hover">
+            <span>{{ eq + 1 }}</span>
+            <Icon @click="deleteListFunc(index, eq)" type="md-remove-circle" />
+          </li>
           <li class="no-top no-right no-bottom flex-10">
             <ul>
-              <li v-for="(ite, k) in list" :key="k" class="no-top no-left">
-                <input placeholder="0" type="text">
+              <li v-for="(ite, k) in (list.length - 3)" :key="k" class="no-top no-left">
+                <input v-model="list[k]" placeholder="0" type="text">
               </li>
             </ul>
           </li>
           <li class="no-top no-left">
-            <input type="text" placeholder="0">
+            <Input v-model="list[list.length - 3]" @on-change="totalFunc(index, eq)" type="text" placeholder="0" />
           </li>
           <li class="no-top no-left">
-            <input type="text" placeholder="0">
+            <Input v-model="list[list.length - 2]" @on-change="totalFunc(index, eq)" type="text" placeholder="0" />
           </li>
           <li class="no-top no-left">
-            <input type="text" placeholder="0">
+            <Input disabled v-model="list[list.length - 1]" type="text" placeholder="0" />
           </li>
         </ul>
         <ul class="ul-list-color">
           <li class="no-top font-weight">合计</li>
           <li class="no-top no-right no-bottom flex-10">-</li>
-          <li class="no-top font-weight">0</li>
-          <li class="no-top no-left font-weight">0</li>
-          <li class="no-top no-left font-weight">0</li>
+          <li class="no-top font-weight">
+            {{ item.totalNums }}
+          </li>
+          <li class="no-top no-left font-weight">
+            {{ item.totalUnit }}
+          </li>
+          <li class="no-top no-left font-weight">
+            {{ item.totalPrice }}
+          </li>
         </ul>
       </div>
       <!-- demo -->
@@ -282,35 +334,38 @@
       <ul class="ul-color">
         <li class="no-top font-weight">总合计</li>
         <li class="no-top no-right no-bottom flex-10">-</li>
-        <li class="no-top font-weight">0</li>
-        <li class="no-top no-left font-weight">0</li>
-        <li class="no-top no-left font-weight">0</li>
+        <li class="no-top font-weight">{{ formData.totalNums }}</li>
+        <li class="no-top no-left font-weight">{{ formData.totalUnit }}</li>
+        <li class="no-top no-left font-weight">{{ formData.totalPrice }}</li>
       </ul>
       <!-- 备注 -->
       <ul>
         <li class="no-top font-weight">备注</li>
         <li class="no-top no-left no-bottom flex-13 text-align">
-          <input type="text" placeholder="请填写备注">
+          <input v-model="formData.remark" type="text" placeholder="请填写备注">
         </li>
       </ul>
       <ul>
         <li class="no-top font-weight">电话</li>
         <li class="no-top no-left no-bottom flex-13 text-align">
-          <input type="text" placeholder="请填写电话">
+          <input v-model="formData.phone" type="text" placeholder="请填写电话">
         </li>
       </ul>
       <ul>
         <li class="no-top font-weight">账号</li>
         <li class="no-top no-left no-bottom flex-13 text-align">
-          <input type="text" placeholder="请输入账号">
+          <input v-model="formData.account" type="text" placeholder="请输入账号">
         </li>
       </ul>
       <ul>
-        <li class="no-top font-weight">新疆乌鲁木齐市米东区杨大伟</li>
+        <li class="no-top font-weight">制表人</li>
+        <li class="no-top no-left no-bottom flex-13 text-align">
+          <input v-model="formData.createUser" type="text" placeholder="请输入制表人姓名">
+        </li>
       </ul>
     </div>
     <Row type="flex" justify="end">
-      <Button type="primary">保存订单</Button>
+      <Button @click="addOrderFunc" type="primary">保存订单</Button>
     </Row>
     <!-- 添加分类modal -->
     <Modal
@@ -322,80 +377,92 @@
       <Input
         v-model="typeName"
         placeholder="请输入新的类别名称"
-        style="width: 300px; margin: 0 0 30px 0;"/>
+        style="width: 300px; display: block;"/>
+      <Button
+        type="primary"
+        style="margin: 20px 0"
+        @click="addNewStatus = true">添加参数库</Button>
       <Transfer
-        :data="data"
+        :data="typeData"
         :target-keys="targetKeys"
         :render-format="render"
         :titles="titles"
         @on-change="handleChange" />
     </Modal>
+    <!-- 新增参数库 -->
+    <Modal
+      v-model="addNewStatus"
+      title="新增参数"
+      width="500"
+      @on-ok="addNewParameterFunc"
+      class-name="modal-add">
+      <Input
+        v-model="addNewParameter"
+        placeholder="请输入参数名称"
+        style="width: 300px; display: block;"/>
+    </Modal>
   </div>
 </template>
 
 <script>
+import {
+  orderAdd,
+  OrderTypeAdd,
+  OrderTypeList
+} from '@/api/order'
 export default {
   name: 'order_details',
   data () {
     return {
-      addStatus: false,
-      data: [
-        {
-          label: '长度',
-          key: 'length'
-        }, {
-          label: '宽度',
-          key: 'width'
-        }, {
-          label: '高度',
-          key: 'height'
-        }, {
-          label: '平方',
-          key: 'square'
-        }, {
-          label: '颜色',
-          key: 'color'
-        }, {
-          label: '名称',
-          key: 'name'
-        }, {
-          label: '型号',
-          key: 'model'
-        }, {
-          label: '转换条',
-          key: 'transform'
-        }
-      ], // 目标数据
-      targetKeys: [], // 选择后的数据
-      typeName: '',
+      scaleValue: 1,
       titles: ['参数库', '目标参数'],
+      addStatus: false, // 新增分类状态
+      addNewStatus: false, // 新增参数库状态
+      formData: {
+        phone: '', // 商家电话
+        account: '', // 账号
+        orderName: '', // 项目名称
+        clearingForm: '', // 结算方式
+        createUser: '', // 制表人
+        deliveryDate: '', // 交货日期
+        orderDate: '', // 订货日期
+        orderNo: '', // 订单编号
+        orderPhone: '', // 客户电话
+        orderUser: '', // 订货人
+        remark: '', // 备注
+        shippingMethod: '', // 送货方式
+        orderTypeName: [], // 订单类别
+        totalNums: 0, // 合计数量
+        totalPrice: 0, // 合计金额
+        totalUnit: 0 // 合计单位
+      }, // 数据
+      typeData: [], // 参数库数据
+      targetKeys: [], // 选择后的数据
+      typeName: '', // 新增类别名称
+      addNewParameter: '', // 新增参数名称
       dataArray: [] // 类别总参数
     }
   },
   methods: {
-    addModalFunc () {
-      this.dataArray.push({
-        name: this.typeName,
-        parameter: this.modalDataFunc(),
-        dataList: []
-      })
-      console.log(this.dataArray)
-    },
-    render (item) {
-      return item.label
-    },
-    handleChange (newTargetKeys, direction, moveKeys) {
-      this.targetKeys = newTargetKeys
-    },
-    modalDataFunc () {
-      let arr = []
-      this.targetKeys.map(item => {
-        this.data.map(list => {
-          if (item === list.key) arr.push(list)
+    // 获取参数库
+    getTypeDataFunc () {
+      OrderTypeList().then(res => {
+        res.data.data.map(item => {
+          item.key = item.keyName
         })
+        this.typeData = res.data.data
       })
-      return arr
     },
+    // 新增订单
+    addOrderFunc () {
+      orderAdd().then(res => {})
+    },
+    // 删除分类中列表
+    deleteListFunc (index, eq) {
+      this.dataArray[index].dataList.splice(eq, 1)
+      this.totalFunc(index, eq)
+    },
+    // 分类行新增列表
     addListFunc (eq) {
       let data = []
       for (let i = 0; i < this.dataArray[eq].parameter.length; i++) {
@@ -406,7 +473,90 @@ export default {
           item.dataList.push(data)
         }
       })
+    },
+    // 新增分类
+    addModalFunc () {
+      if (!this.typeName) {
+        return this.$Message.error({
+          content: '请填写类别名称'
+        })
+      }
+      this.dataArray.push({
+        name: this.typeName, // 类型名称
+        parameter: this.modalDataFunc(), // 整体参数
+        dataList: [], // 整体数据
+        totalNums: 0,
+        totalPrice: 0,
+        totalUnit: 0
+      })
+    },
+    // 新增参数库
+    addNewParameterFunc () {
+      OrderTypeAdd({
+        keyName: new Date().getTime(),
+        name: this.addNewParameter
+      }).then(res => {
+        if (Number(res.data.code) === 200) {
+          this.$Message.success({
+            content: '参数添加成功'
+          })
+          this.getTypeDataFunc()
+          this.addNewStatus = false
+        }
+      })
+    },
+    render (item) {
+      return item.name
+    },
+    handleChange (newTargetKeys, direction, moveKeys) {
+      this.targetKeys = newTargetKeys
+    },
+    modalDataFunc () {
+      let arr = []
+      this.targetKeys.map(item => {
+        this.typeData.map(list => {
+          if (item === list.keyName) arr.push(list)
+        })
+      })
+      return arr.concat([{
+        keyName: 'nums',
+        name: '数量'
+      }, {
+        keyName: 'unit',
+        name: '单价'
+      }, {
+        keyName: 'price',
+        name: '金额'
+      }])
+    },
+    // 单个类别合计总值
+    totalFunc (index, eq) {
+      let nums = 0,
+        units = 0,
+        price = 0
+      this.formData.totalNums = 0
+      this.formData.totalUnit = 0
+      this.formData.totalPrice = 0
+      let _data = this.dataArray[index].dataList[eq]
+      this.dataArray[index].dataList.map(item => {
+        nums += Number(item[item.length - 3])
+        units += Number(item[item.length - 2])
+        price += Number(item[item.length - 3]) * Number(item[item.length - 2])
+      })
+      this.dataArray[index].totalNums = nums.toFixed(1)
+      this.dataArray[index].totalUnit = units.toFixed(1)
+      this.dataArray[index].totalPrice = price.toFixed(1)
+      _data[_data.length - 1] = Number(_data[_data.length - 3]) * Number(_data[_data.length - 2])
+      // 总合计计算
+      this.dataArray.map(item => {
+        this.formData.totalNums += Number(item.totalNums)
+        this.formData.totalUnit += Number(item.totalUnit)
+        this.formData.totalPrice += Number(item.totalPrice)
+      })
     }
+  },
+  mounted () {
+    this.getTypeDataFunc()
   }
 }
 </script>
