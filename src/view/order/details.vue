@@ -41,7 +41,7 @@
         }
         &.font-weight {
           color: #333;
-          font-size: 16px;
+          font-size: 14px;
           font-weight: bold;
         }
         &.line-height {
@@ -235,7 +235,7 @@
       <ul>
         <li class="no-top">订货日期</li>
         <li class="no-top no-left">
-          <DatePicker v-model="formData.orderDate" type="date" placeholder="请选择日期"></DatePicker>
+          <DatePicker v-model="formData.orderDate" type="date" format="yyyy-MM-dd" placeholder="请选择日期"></DatePicker>
         </li>
         <li class="no-top no-left">订单号</li>
         <li class="no-top no-left">
@@ -243,7 +243,7 @@
         </li>
         <li class="no-top no-left">交货日期</li>
         <li class="no-top no-left">
-          <DatePicker v-model="formData.deliveryDate" type="date" placeholder="请选择日期"></DatePicker>
+          <DatePicker v-model="formData.deliveryDate" type="date" format="yyyy-MM-dd" placement="bottom-end" placeholder="请选择日期"></DatePicker>
         </li>
       </ul>
       <ul>
@@ -274,7 +274,7 @@
       <div v-for="(item, index) in dataArray" :key="index">
         <ul>
           <li class="no-top line-height">
-            {{ item.name }}
+            {{ item.orderTypeName }}
             <Icon @click="addListFunc(index)" type="md-add-circle"/>
           </li>
           <li class="no-top no-right no-bottom flex-10">
@@ -293,26 +293,26 @@
           <li class="no-top no-left line-height">单位</li>
           <li class="no-top no-left line-height">金额</li>
         </ul>
-        <ul v-for="(list, eq) in item.dataList" :key="eq">
+        <ul v-for="(list, eq) in item.orderDetailVos" :key="eq">
           <li class="no-top list-hover">
             <span>{{ eq + 1 }}</span>
             <Icon @click="deleteListFunc(index, eq)" type="md-remove-circle" />
           </li>
           <li class="no-top no-right no-bottom flex-10">
             <ul>
-              <li v-for="(ite, k) in (list.length - 3)" :key="k" class="no-top no-left">
-                <input v-model="list[k]" placeholder="0" type="text">
+              <li v-for="(ite, k) in list" v-show="k < list.length - 3" :key="k" class="no-top no-left">
+                <input v-model="ite.value" placeholder="0" type="text">
               </li>
             </ul>
           </li>
           <li class="no-top no-left">
-            <Input v-model="list[list.length - 3]" @on-change="totalFunc(index, eq)" type="text" placeholder="0" />
+            <Input v-model="list[list.length - 3].value" @on-change="totalFunc(index, eq)" type="text" placeholder="0" />
           </li>
           <li class="no-top no-left">
-            <Input v-model="list[list.length - 2]" @on-change="totalFunc(index, eq)" type="text" placeholder="0" />
+            <Input v-model="list[list.length - 2].value" @on-change="totalFunc(index, eq)" type="text" placeholder="0" />
           </li>
           <li class="no-top no-left">
-            <Input disabled v-model="list[list.length - 1]" type="text" placeholder="0" />
+            <Input disabled v-model="list[list.length - 1].value" type="text" placeholder="0" />
           </li>
         </ul>
         <ul class="ul-list-color">
@@ -406,7 +406,7 @@
 
 <script>
 import {
-  orderAdd,
+  OrderAdd,
   OrderTypeAdd,
   OrderTypeList
 } from '@/api/order'
@@ -455,22 +455,30 @@ export default {
     },
     // 新增订单
     addOrderFunc () {
-      orderAdd().then(res => {})
+      OrderAdd(Object.assign(this.formData, {
+        orderTypeName: [].concat(this.dataArray),
+        orderDate: this.$moment(this.formData.deliveryDate).format('YYYY-MM-DD'),
+        deliveryDate: this.$moment(this.formData.deliveryDate).format('YYYY-MM-DD')
+      })).then(res => {
+        console.log(res)
+      })
     },
     // 删除分类中列表
     deleteListFunc (index, eq) {
-      this.dataArray[index].dataList.splice(eq, 1)
+      this.dataArray[index].orderDetailVos.splice(eq, 1)
       this.totalFunc(index, eq)
     },
     // 分类行新增列表
     addListFunc (eq) {
       let data = []
+      let _paramData = JSON.parse(JSON.stringify(this.dataArray[eq].parameter))
       for (let i = 0; i < this.dataArray[eq].parameter.length; i++) {
         data[i] = 0
+        _paramData.value = 0
       }
       this.dataArray.map((item, index) => {
         if (eq === index) {
-          item.dataList.push(data)
+          item.orderDetailVos.push(_paramData)
         }
       })
     },
@@ -482,12 +490,19 @@ export default {
         })
       }
       this.dataArray.push({
-        name: this.typeName, // 类型名称
+        orderTypeName: this.typeName, // 类型名称
         parameter: this.modalDataFunc(), // 整体参数
-        dataList: [], // 整体数据
         totalNums: 0,
         totalPrice: 0,
-        totalUnit: 0
+        totalUnit: 0,
+        orderDetailVos: [], // 整体数据
+        orderId: (() => {
+          let _data = []
+          this.modalDataFunc().map(item => {
+            if (item.id) _data.push(item.id)
+          })
+          return _data.join(',')
+        })()
       })
     },
     // 新增参数库
@@ -515,18 +530,23 @@ export default {
       let arr = []
       this.targetKeys.map(item => {
         this.typeData.map(list => {
-          if (item === list.keyName) arr.push(list)
+          if (item === list.keyName) arr.push(Object.assign(list, {
+            value: 0
+          }))
         })
       })
       return arr.concat([{
         keyName: 'nums',
-        name: '数量'
+        name: '数量',
+        value: 0
       }, {
         keyName: 'unit',
-        name: '单价'
+        name: '单价',
+        value: 0
       }, {
         keyName: 'price',
-        name: '金额'
+        name: '金额',
+        value: 0
       }])
     },
     // 单个类别合计总值
@@ -537,16 +557,16 @@ export default {
       this.formData.totalNums = 0
       this.formData.totalUnit = 0
       this.formData.totalPrice = 0
-      let _data = this.dataArray[index].dataList[eq]
-      this.dataArray[index].dataList.map(item => {
-        nums += Number(item[item.length - 3])
-        units += Number(item[item.length - 2])
-        price += Number(item[item.length - 3]) * Number(item[item.length - 2])
+      let _data = this.dataArray[index].orderDetailVos[eq]
+      this.dataArray[index].orderDetailVos.map(item => {
+        nums += Number(item[item.length - 3].value)
+        units += Number(item[item.length - 2].value)
+        price += Number(item[item.length - 3].value) * Number(item[item.length - 2].value)
       })
       this.dataArray[index].totalNums = nums.toFixed(1)
       this.dataArray[index].totalUnit = units.toFixed(1)
       this.dataArray[index].totalPrice = price.toFixed(1)
-      _data[_data.length - 1] = Number(_data[_data.length - 3]) * Number(_data[_data.length - 2])
+      _data[_data.length - 1].value = (Number(_data[_data.length - 3].value) * Number(_data[_data.length - 2].value)).toFixed(1)
       // 总合计计算
       this.dataArray.map(item => {
         this.formData.totalNums += Number(item.totalNums)

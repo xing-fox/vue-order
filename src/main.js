@@ -7,6 +7,7 @@ import store from './store'
 import iView from 'iview'
 import i18n from '@/locale'
 import config from '@/config'
+import moment from 'moment'
 import importDirective from '@/directive'
 import { directive as clickOutside } from 'v-click-outside-x'
 import installPlugin from '@/plugin'
@@ -31,6 +32,7 @@ installPlugin(Vue)
 /**
  * @description 生产环境关掉提示
  */
+Vue.prototype.$moment = moment
 Vue.config.productionTip = false
 /**
  * @description 全局注册应用配置
