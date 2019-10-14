@@ -28,12 +28,16 @@ export default {
       'getUserInfo'
     ]),
     handleSubmit ({ userName, password }) {
+      console.log(123)
       this.handleLogin({ userName, password }).then(res => {
-        this.getUserInfo().then(res => {
-          this.$router.push({
-            name: this.$config.homeName
-          })
+        this.$router.push({
+          name: this.$config.homeName
         })
+        // this.getUserInfo().then(res => {
+        //   this.$router.push({
+        //     name: this.$config.homeName
+        //   })
+        // })
       })
     }
   }

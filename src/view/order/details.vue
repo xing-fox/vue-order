@@ -1,7 +1,7 @@
 <style lang="less" scoped>
 .order-details-wrapper {
   color: #000;
-  width: 92%;
+  width: 98%;
   margin: 0 auto;
   overflow: auto;
   .content {
@@ -455,12 +455,33 @@ export default {
     },
     // 新增订单
     addOrderFunc () {
+      let orderTypeName = []
+      this.dataArray.map(item => {
+        item.orderDetailVosCreate = []
+        item.orderDetailVos.map((ite, index) => {
+          item.orderDetailVosCreate[index] = {}
+          ite.map(list => {
+            item.orderDetailVosCreate[index][list.keyName] = list.value
+          })
+        })
+      })
+      orderTypeName = [].concat(JSON.parse(JSON.stringify(this.dataArray)))
+      orderTypeName.map(item => {
+        item.orderDetailVos = [].concat(item.orderDetailVosCreate)
+      })
       OrderAdd(Object.assign(this.formData, {
-        orderTypeName: [].concat(this.dataArray),
-        orderDate: this.$moment(this.formData.deliveryDate).format('YYYY-MM-DD'),
+        orderTypeName: orderTypeName,
+        orderDate: this.$moment(this.formData.orderDate).format('YYYY-MM-DD'),
         deliveryDate: this.$moment(this.formData.deliveryDate).format('YYYY-MM-DD')
       })).then(res => {
-        console.log(res)
+        if (Number(res.data.code) === 200) {
+          this.$Message.success({
+            content: '订单保存成功'
+          })
+          this.$router.push({
+            path: '/order/order_index'
+          })
+        }
       })
     },
     // 删除分类中列表
@@ -496,7 +517,7 @@ export default {
         totalPrice: 0,
         totalUnit: 0,
         orderDetailVos: [], // 整体数据
-        orderId: (() => {
+        orderTypeIds: (() => {
           let _data = []
           this.modalDataFunc().map(item => {
             if (item.id) _data.push(item.id)
@@ -530,9 +551,11 @@ export default {
       let arr = []
       this.targetKeys.map(item => {
         this.typeData.map(list => {
-          if (item === list.keyName) arr.push(Object.assign(list, {
-            value: 0
-          }))
+          if (item === list.keyName) {
+            arr.push(Object.assign(list, {
+              value: 0
+            }))
+          }
         })
       })
       return arr.concat([{
@@ -551,9 +574,9 @@ export default {
     },
     // 单个类别合计总值
     totalFunc (index, eq) {
-      let nums = 0,
-        units = 0,
-        price = 0
+      let nums = 0
+      let units = 0
+      let price = 0
       this.formData.totalNums = 0
       this.formData.totalUnit = 0
       this.formData.totalPrice = 0

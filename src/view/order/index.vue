@@ -36,7 +36,7 @@
       </Col>
     </Row>
     <Row class-name="row-top" type="flex" justify="end">
-      <Page :total="totals"></Page>
+      <Page :total="totals" show-total @on-change="pageChangeFunc"></Page>
     </Row>
   </div>
 </template>
@@ -87,6 +87,10 @@ export default {
           })
         }
       })
+    },
+    pageChangeFunc (eq) {
+      this.pageNum = eq
+      this.getData()
     }
   },
   data () {
