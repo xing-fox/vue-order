@@ -478,9 +478,6 @@ export default {
           this.$Message.success({
             content: '订单保存成功'
           })
-          this.$router.push({
-            path: '/order/order_index'
-          })
         }
       })
     },

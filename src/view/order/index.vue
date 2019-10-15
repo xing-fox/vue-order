@@ -30,7 +30,7 @@
           <template slot-scope="{ row, index }" slot="action">
             <Button size="small" type="info" style="margin: 0 10px 0 0;" @click="detailsOrderFunc(row.id)">订单详情</Button>
             <Button size="small" type="primary" style="margin: 0 10px 0 0;" @click="changeOrderFunc(row.id)">修改</Button>
-            <Button size="small" type="error" @click="deleteOrderFunc(row.id)">删除</Button>
+            <Button size="small" type="error" @click="deleteOrderFunc(row.id, index)">删除</Button>
           </template>
         </Table>
       </Col>
@@ -69,7 +69,7 @@ export default {
     // 修改
     changeOrderFunc () {},
     // 删除
-    deleteOrderFunc (id) {
+    deleteOrderFunc (id, eq) {
       this.$Modal.confirm({
         width: 350,
         render: (h) => {
@@ -83,7 +83,10 @@ export default {
         },
         onOk: () => {
           DeleteOrder(id).then(res => {
-            console.log(res)
+            if (Number(res.data.code === 200)) {
+              this.$Message.success('订单删除成功')
+              this.dataList.splice(eq, 1)
+            }
           })
         }
       })
@@ -110,17 +113,22 @@ export default {
           key: 'orderPhone',
           align: 'center'
         }, {
+          width: '180px',
           title: '订单编号',
           key: 'orderNo',
           align: 'center'
         }, {
           title: '交货日期',
-          key: 'deliveryDate',
-          align: 'center'
+          align: 'center',
+          render: (h, param) => {
+            return h('span', {}, param.row.deliveryDate || '---')
+          }
         }, {
           title: '结算方式',
-          key: 'clearingForm',
-          align: 'center'
+          align: 'center',
+          render: (h, param) => {
+            return h('span', {}, param.row.clearingForm || '---')
+          }
         }, {
           title: '送货方式',
           key: 'shippingMethod',
