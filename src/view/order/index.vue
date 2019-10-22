@@ -81,7 +81,7 @@ export default {
       })
     },
     // 删除
-    deleteOrderFunc (id) {
+    deleteOrderFunc (id, eq) {
       this.$Modal.confirm({
         width: 350,
         render: (h) => {
@@ -143,17 +143,22 @@ export default {
           key: 'orderPhone',
           align: 'center'
         }, {
+          width: '180px',
           title: '订单编号',
           key: 'orderNo',
           align: 'center'
         }, {
           title: '交货日期',
-          key: 'deliveryDate',
-          align: 'center'
+          align: 'center',
+          render: (h, param) => {
+            return h('span', {}, param.row.deliveryDate || '---')
+          }
         }, {
           title: '结算方式',
-          key: 'clearingForm',
-          align: 'center'
+          align: 'center',
+          render: (h, param) => {
+            return h('span', {}, param.row.clearingForm || '---')
+          }
         }, {
           title: '送货方式',
           key: 'shippingMethod',
