@@ -53,3 +53,24 @@ export const DeleteOrder = (data) => {
     method: 'delete'
   })
 }
+
+/**
+ * 查看订单详情
+ */
+export const GetOrderDetails = (data) => {
+  return axios.request({
+    url: `/order/get/${data}`,
+    method: 'get'
+  })
+}
+
+/**
+ * 修改订单详情
+ */
+export const UpdateOrder = (data) => {
+  return axios.request({
+    url: `/order/update`,
+    data,
+    method: 'put'
+  })
+}

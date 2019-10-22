@@ -216,15 +216,15 @@
 
 <template>
   <div class="order-details-wrapper">
-    <Row class-name="row-margin" type="flex" justify="space-between">
+    <Row class-name="row-margin" type="flex" justify="space-between" v-if="!this.DataJson.id">
       <Col span="6">
         <Button type="primary" @click="addStatus = true">添加分类</Button>
       </Col>
-      <Col class-name="col-fontSize">
+      <!-- <Col class-name="col-fontSize">
         <Icon type="ios-remove-circle" @click="scaleValue = scaleValue < .8 ? .7 : scaleValue - .1" />
         <span>表格缩放</span>
         <Icon type="ios-add-circle" @click="scaleValue = scaleValue >= 1 ? 1 : scaleValue + .1" />
-      </Col>
+      </Col> -->
     </Row>
     <div class="content" :style="{'transform': `scale(${scaleValue}, ${scaleValue})`}">
       <ul>
@@ -283,10 +283,10 @@
             </ul>
             <ul>
               <li
-                v-for="(list, eq) in (item.parameter.length - 3)"
+                v-for="(list, eq) in (item.orderTypeRelations.length - 3)"
                 :key="eq"
                 class="no-top no-left"
-              >{{ item.parameter[eq].name }}</li>
+              >{{ item.orderTypeRelations[eq].name }}</li>
             </ul>
           </li>
           <li class="no-top no-left line-height">数量</li>
@@ -300,16 +300,16 @@
           </li>
           <li class="no-top no-right no-bottom flex-10">
             <ul>
-              <li v-for="(ite, k) in list" v-show="k < list.length - 3" :key="k" class="no-top no-left">
+              <li v-for="(ite, k) in list" v-show="k < list.length - 3" :key="k" class="no-top no-left no-bottom">
                 <input v-model="ite.value" placeholder="0" type="text">
               </li>
             </ul>
           </li>
           <li class="no-top no-left">
-            <Input v-model="list[list.length - 3].value" @on-change="totalFunc(index, eq)" type="text" placeholder="0" />
+            <Input v-model="list[list.length - 3].value" @on-change="totalFunc(index, eq)" style="width: 80%" type="text" placeholder="0" />
           </li>
           <li class="no-top no-left">
-            <Input v-model="list[list.length - 2].value" @on-change="totalFunc(index, eq)" type="text" placeholder="0" />
+            <Input v-model="list[list.length - 2].value" @on-change="totalFunc(index, eq)" style="width: 80%" type="text" placeholder="0" />
           </li>
           <li class="no-top no-left">
             <Input disabled v-model="list[list.length - 1].value" type="text" placeholder="0" />
@@ -365,7 +365,8 @@
       </ul>
     </div>
     <Row type="flex" justify="end">
-      <Button @click="addOrderFunc" type="primary">保存订单</Button>
+      <Button v-if="!this.DataJson.id" @click="addOrderFunc" type="primary">保存订单</Button>
+      <Button v-else @click="addOrderFunc" type="primary">修改订单</Button>
     </Row>
     <!-- 添加分类modal -->
     <Modal
@@ -407,11 +408,17 @@
 <script>
 import {
   OrderAdd,
+  UpdateOrder,
   OrderTypeAdd,
   OrderTypeList
 } from '@/api/order'
 export default {
   name: 'order_details',
+  props: {
+    DataJson: {
+      type: Object
+    }
+  },
   data () {
     return {
       scaleValue: 1,
@@ -469,20 +476,35 @@ export default {
       orderTypeName.map(item => {
         item.orderDetailVos = [].concat(item.orderDetailVosCreate)
       })
-      OrderAdd(Object.assign(this.formData, {
-        orderTypeName: orderTypeName,
-        orderDate: this.$moment(this.formData.orderDate).format('YYYY-MM-DD'),
-        deliveryDate: this.$moment(this.formData.deliveryDate).format('YYYY-MM-DD')
-      })).then(res => {
-        if (Number(res.data.code) === 200) {
-          this.$Message.success({
-            content: '订单保存成功'
-          })
-          this.$router.push({
-            path: '/order/order_index'
-          })
-        }
-      })
+      if (this.DataJson.id) {
+        UpdateOrder(Object.assign(this.formData, {
+          orderTypeName: orderTypeName,
+          orderDate: this.$moment(this.formData.orderDate).format('YYYY-MM-DD'),
+          deliveryDate: this.$moment(this.formData.deliveryDate).format('YYYY-MM-DD')
+        })).then(res => {
+          if (Number(res.data.code) === 200) {
+            this.$Notice.success({
+              title: '',
+              desc: '订单修改成功'
+            })
+            this.$emit('orderSuccess')
+          }
+        })
+      } else {
+        OrderAdd(Object.assign(this.formData, {
+          orderTypeName: orderTypeName,
+          orderDate: this.$moment(this.formData.orderDate).format('YYYY-MM-DD'),
+          deliveryDate: this.$moment(this.formData.deliveryDate).format('YYYY-MM-DD')
+        })).then(res => {
+          if (Number(res.data.code) === 200) {
+            this.$Notice.success({
+              title: '',
+              desc: '订单保存成功'
+            })
+            this.$emit('orderSuccess')
+          }
+        })
+      }
     },
     // 删除分类中列表
     deleteListFunc (index, eq) {
@@ -492,8 +514,8 @@ export default {
     // 分类行新增列表
     addListFunc (eq) {
       let data = []
-      let _paramData = JSON.parse(JSON.stringify(this.dataArray[eq].parameter))
-      for (let i = 0; i < this.dataArray[eq].parameter.length; i++) {
+      let _paramData = JSON.parse(JSON.stringify(this.dataArray[eq].orderTypeRelations))
+      for (let i = 0; i < this.dataArray[eq].orderTypeRelations.length; i++) {
         data[i] = 0
         _paramData.value = 0
       }
@@ -512,7 +534,7 @@ export default {
       }
       this.dataArray.push({
         orderTypeName: this.typeName, // 类型名称
-        parameter: this.modalDataFunc(), // 整体参数
+        orderTypeRelations: this.modalDataFunc(), // 整体参数
         totalNums: 0,
         totalPrice: 0,
         totalUnit: 0,
@@ -600,6 +622,41 @@ export default {
   },
   mounted () {
     this.getTypeDataFunc()
+    if (this.DataJson.id) {
+      this.DataJson.orderTypeNameDtoList.map(item => {
+        let _data = []
+        item.orderDetailVos = []
+        item.orderTypeRelations.map((list, index) => {
+          _data.push(list.keyName)
+        })
+        _data = _data.concat(['nums', 'unit', 'price'])
+        item.orderDetailDtos.map((list, index) => {
+        item.orderDetailVos[index] = []
+          _data.map(ite => {
+            item.orderDetailVos[index].push({
+              value: list[ite]
+            })
+          })
+        })
+        item.orderTypeRelations = item.orderTypeRelations.concat([
+          {
+            keyName: 'nums',
+            name: '数量',
+            value: 0
+          }, {
+            keyName: 'unit',
+            name: '单价',
+            value: 0
+          }, {
+            keyName: 'price',
+            name: '金额',
+            value: 0
+          }
+        ])
+      })
+      this.formData = this.DataJson
+      this.dataArray = this.DataJson.orderTypeNameDtoList
+    }
   }
 }
 </script>

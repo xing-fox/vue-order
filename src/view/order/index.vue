@@ -11,7 +11,7 @@
   <div class="order-wrapper">
     <Row type="flex" justify="space-between">
       <Col span="2">
-        <Button type="primary" @click="addOrderFunc">新增订单</Button>
+        <Button type="primary" @click="addStatus = true">新增订单</Button>
       </Col>
       <Col span="5">
         <Input v-model="formItem.value" placeholder="请输入客户姓名">
@@ -28,8 +28,7 @@
           :data="dataList"
           no-data-text="暂无订单，请添加订单">
           <template slot-scope="{ row, index }" slot="action">
-            <Button size="small" type="info" style="margin: 0 10px 0 0;" @click="detailsOrderFunc(row.id)">订单详情</Button>
-            <Button size="small" type="primary" style="margin: 0 10px 0 0;" @click="changeOrderFunc(row.id)">修改</Button>
+            <Button size="small" type="info" style="margin: 0 10px 0 0;" @click="detailsOrderFunc(row.orderNo)">订单详情</Button>
             <Button size="small" type="error" @click="deleteOrderFunc(row.id)">删除</Button>
           </template>
         </Table>
@@ -38,22 +37,29 @@
     <Row class-name="row-top" type="flex" justify="end">
       <Page :total="totals" show-total @on-change="pageChangeFunc"></Page>
     </Row>
+    <Modal
+      v-model="addStatus"
+      title="新增订单"
+      width="1360"
+      :footer-hide="true"
+      @on-visible-change="StatusChnage">
+      <Row v-if="addStatus">
+        <order-details @orderSuccess="SuccessFunc" :DataJson="dataJson" />
+      </Row>
+    </Modal>
   </div>
 </template>
 
 <script>
 import {
   OrderList,
-  DeleteOrder
+  DeleteOrder,
+  GetOrderDetails
 } from '@/api/order'
+import OrderDetails from './details.vue'
 export default {
   name: 'order_index',
   methods: {
-    addOrderFunc () {
-      this.$router.push({
-        path: 'order_details'
-      })
-    },
     getData () {
       OrderList({
         pageSize: 10,
@@ -65,9 +71,15 @@ export default {
       })
     },
     // 查看详情
-    detailsOrderFunc () {},
-    // 修改
-    changeOrderFunc () {},
+    detailsOrderFunc (id) {
+      GetOrderDetails(id).then(res => {
+        let data = res.data
+        if (data.code === 200) {
+          this.dataJson = data.data
+          this.addStatus = true
+        }
+      })
+    },
     // 删除
     deleteOrderFunc (id) {
       this.$Modal.confirm({
@@ -83,20 +95,41 @@ export default {
         },
         onOk: () => {
           DeleteOrder(id).then(res => {
-            console.log(res)
+            if (res.data.code === 200) {
+              this.$Notice.success({
+                desc: '订单删除成功'
+              })
+              this.getData()
+            }
           })
         }
       })
     },
+    // 修改页面
     pageChangeFunc (eq) {
       this.pageNum = eq
       this.getData()
+    },
+    // 订单保存成功
+    SuccessFunc () {
+      this.addStatus = false
+      this.pageNum = 1
+      this.getData()
+    },
+    // 状态更新
+    StatusChnage (status) {
+      if (!this.addStatus) this.dataJson = {}
     }
+  },
+  components: {
+    OrderDetails
   },
   data () {
     return {
       totals: 0, // 总数据
       pageNum: 1, // 页数
+      dataJson: {}, // 订单详情数据
+      addStatus: false,
       formItem: {
         value: '' // 搜索
       },
