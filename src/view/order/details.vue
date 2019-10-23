@@ -624,35 +624,29 @@ export default {
     this.getTypeDataFunc()
     if (this.DataJson.id) {
       this.DataJson.orderTypeNameDtoList.map(item => {
-        let _data = []
         item.orderDetailVos = []
-        item.orderTypeRelations.map((list, index) => {
-          _data.push(list.keyName)
-        })
-        _data = _data.concat(['nums', 'unit', 'price'])
-        item.orderDetailDtos.map((list, index) => {
-        item.orderDetailVos[index] = []
-          _data.map(ite => {
-            item.orderDetailVos[index].push({
-              value: list[ite]
-            })
-          })
-        })
         item.orderTypeRelations = item.orderTypeRelations.concat([
           {
             keyName: 'nums',
-            name: '数量',
-            value: 0
+            name: '数量'
           }, {
             keyName: 'unit',
-            name: '单价',
-            value: 0
+            name: '单价'
           }, {
             keyName: 'price',
-            name: '金额',
-            value: 0
+            name: '金额'
           }
         ])
+        item.orderDetailDtos.map((list, index) => {
+          item.orderDetailVos[index] = []
+          item.orderTypeRelations.map(ite => {
+            item.orderDetailVos[index].push({
+              value: list[ite.keyName],
+              keyName: ite.keyName,
+              name: ite.name
+            })
+          })
+        })
       })
       this.formData = this.DataJson
       this.dataArray = this.DataJson.orderTypeNameDtoList
